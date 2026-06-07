@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>꼬망 카페 키오스크</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; -webkit-text-size-adjust: 100%; }
+    body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background: #e2f4fd; color: #1f2937; }
+    img { max-width: 100%; height: auto; }
+    button { font-family: inherit; }
+    input { font-family: inherit; }
+    input[type=number] { -moz-appearance: textfield; }
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    #root { height: 100%; }
+    .scrollY::-webkit-scrollbar { width: 6px; }
+    .scrollY::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 3px; }
+    .scrollY::-webkit-scrollbar-track { background: transparent; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes floatY { 0%,100% { transform: translateY(0) rotate(-4deg);} 50% { transform: translateY(-12px) rotate(4deg);} }
+    @keyframes pop { 0% { opacity:0; transform: scale(.7);} 80% { transform: scale(1.06);} 100% { opacity:1; transform: scale(1);} }
+    @keyframes dotPulse { 0%, 100% { opacity:.25; transform: scale(.8);} 50% { opacity:1; transform: scale(1);} }
+    @keyframes waveOut { 0% { transform: scale(0.4); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
+    @keyframes phoneBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    @keyframes slideUp { 0% { opacity:0; transform: translateY(20px);} 100% { opacity:1; transform: translateY(0);} }
+    @keyframes fade { 0% { opacity:0; } 100% { opacity:1; } }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#0EA5E9;font-size:18px;">
+      <div style="text-align:center;">
+        <div style="width:48px;height:48px;border:5px solid #e0f2fe;border-top-color:#0EA5E9;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div>
+        <div>로딩 중...</div>
+      </div>
+    </div>
+  </div>
+  <script type="text/babel" data-presets="react" data-type="module">
+const { useState, useEffect, useRef } = React;
+
+// ─── 메뉴 카탈로그 ───
+const DRINKS = [
+  { key: "americano",            name: "아메리카노",            image: "drinks/americano.png",            defaultPrice: 4500 },
+  { key: "cafe_latte",           name: "카페 라떼",             image: "drinks/cafe_latte.png",           defaultPrice: 5500 },
+  { key: "choco_latte",          name: "초코 라떼",             image: "drinks/choco_latte.png",          defaultPrice: 5500 },
+  { key: "strawberry_latte",     name: "딸기 라떼",             image: "drinks/strawberry_latte.png",     defaultPrice: 5800 },
+  { key: "orange_juice",         name: "오렌지 주스",           image: "drinks/orange_juice.png",         defaultPrice: 5500 },
+  { key: "watermelon_juice",     name: "수박 주스",             image: "drinks/watermelon_juice.png",     defaultPrice: 5500 },
+  { key: "green_grapeade",       name: "청포도 에이드",          image: "drinks/green_grapeade.png",       defaultPrice: 5800 },
+  { key: "lemonade",             name: "레몬에이드",             image: "drinks/lemonade.png",             defaultPrice: 5500 },
+  { key: "grain_shake",          name: "미숫가루 쉐이크",         image: "drinks/grain_shake.png",          defaultPrice: 6500 },
+  { key: "milkshake",            name: "밀크 쉐이크",            image: "drinks/milkshake.png",            defaultPrice: 6000 },
+  { key: "strawberry_milkshake", name: "딸기 밀크 쉐이크",        image: "drinks/strawberry_milkshake.png", defaultPrice: 6500 },
+  { key: "choco_frappe",         name: "초코 프라페",            image: "drinks/choco_frappe.png",         defaultPrice: 6500 },
+  { key: "cookie_cream_frappe",  name: "쿠키앤크림 프라페",       image: "drinks/cookie_cream_frappe.png",  defaultPrice: 6800 },
+  { key: "strawberry_frappe",    name: "딸기 프라페",            image: "drinks/strawberry_frappe.png",    defaultPrice: 6800 },
+  { key: "blueberry_yogurt",     name: "블루베리 요거트 스무디",   image: "drinks/blueberry_yogurt.png",     defaultPrice: 6800 },
+  { key: "kiwi_smoothie",        name: "키위 스무디",            image: "drinks/kiwi_smoothie.png",        defaultPrice: 6500 },
+  { key: "mango_yogurt",         name: "망고 요거트 스무디",      image: "drinks/mango_yogurt.png",         defaultPrice: 6800 },
+];
+
+const DESSERTS = [
+  { key: "salt_bread",         name: "소금빵",            image: "desserts/salt_bread.png",         defaultPrice: 3500 },
+  { key: "scone",              name: "스콘",              image: "desserts/scone.png",              defaultPrice: 4000 },
+  { key: "madeleine",          name: "마들렌",            image: "desserts/madeleine.png",          defaultPrice: 3500 },
+  { key: "macaron",            name: "마카롱",            image: "desserts/macaron.png",            defaultPrice: 3000 },
+  { key: "cheese_muffin",      name: "치즈 머핀",          image: "desserts/cheese_muffin.png",      defaultPrice: 4000 },
+  { key: "choco_muffin",       name: "초코 머핀",          image: "desserts/choco_muffin.png",       defaultPrice: 4000 },
+  { key: "cookie",             name: "쿠키",              image: "desserts/cookie.png",             defaultPrice: 3000 },
+  { key: "eggtart",            name: "에그타르트",         image: "desserts/eggtart.png",            defaultPrice: 3500 },
+  { key: "brownie",            name: "브라우니",          image: "desserts/brownie.png",            defaultPrice: 4500 },
+  { key: "milk_roll_cake",     name: "우유 롤케이크",      image: "desserts/milk_roll_cake.png",     defaultPrice: 5500 },
+  { key: "choco_roll_cake",    name: "초코 롤케이크",      image: "desserts/choco_roll_cake.png",    defaultPrice: 5500 },
+  { key: "milk_cream_cake",    name: "우유 생크림 케이크",  image: "desserts/milk_cream_cake.png",    defaultPrice: 6800 },
+  { key: "cheese_cake",        name: "치즈 케이크",        image: "desserts/cheese_cake.png",        defaultPrice: 6500 },
+  { key: "chocolate_cake",     name: "초코 케이크",        image: "desserts/chocolate_cake.png",     defaultPrice: 6800 },
+  { key: "tiramisu",           name: "티라미수",          image: "desserts/tiramisu.png",           defaultPrice: 6500 },
+  { key: "croffle",            name: "크로플",            image: "desserts/croffle.png",            defaultPrice: 5500 },
+  { key: "honey_butter_bread", name: "허니 버터 브레드",   image: "desserts/honey_butter_bread.png", defaultPrice: 8500 },
+  { key: "sandwich",           name: "샌드위치",           image: "desserts/sandwich.png",           defaultPrice: 7500 },
+];
+
+// 세트는 정적 카탈로그 없음 — 사용자가 설정에서 음료+디저트를 조합해 직접 만듦
+const CATALOG = { drinks: DRINKS, desserts: DESSERTS };
+const catalogMap = {};
+[...DRINKS, ...DESSERTS].forEach(m => { catalogMap[m.key] = m; });
+const categoryOf = key => {
+  if (DRINKS.some(d => d.key === key))   return "drinks";
+  if (DESSERTS.some(d => d.key === key)) return "desserts";
+  return "sets"; // 사용자 정의 세트 키
+};
+const newSetKey = () => `set_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+// 옵션 메타데이터
+const TEMP_DRINKS = new Set(["americano", "cafe_latte", "choco_latte"]); // 뜨겁게/차갑게 선택 가능
+const CREAM_DESSERTS = new Set(["cheese_cake", "chocolate_cake", "tiramisu", "milk_roll_cake", "choco_roll_cake", "milk_cream_cake"]); // 데움 팝업 없이 직접 담김
+
+const needsTemp = (key) => TEMP_DRINKS.has(key);
+const needsHeat = (key) => categoryOf(key) === "desserts" && !CREAM_DESSERTS.has(key);
+const needsOption = (key) => needsTemp(key) || needsHeat(key);
+
+const OPTION_LABEL = {
+  hot:  "뜨겁게",
+  cold: "차갑게",
+  warm: "데워 주세요",
+  asis: "그냥 주세요",
+};
+
+// 카트 키: 옵션이 있으면 "key::option", 없으면 "key"
+const cartKeyOf = (menuKey, option) => option ? `${menuKey}::${option}` : menuKey;
+const parseCartKey = (cartKey) => {
+  const idx = cartKey.indexOf("::");
+  return idx === -1 ? { menuKey: cartKey, option: null } : { menuKey: cartKey.slice(0, idx), option: cartKey.slice(idx + 2) };
+};
+
+// 세트 옵션 인코딩: "d=hot,_|s=warm,asis" 형태 (각 항목 옵션, _ = 옵션 없음)
+const encodeSetOptions = (drinkOpts, dessertOpts) => {
+  const d = (drinkOpts   || []).map(o => o || "_").join(",");
+  const s = (dessertOpts || []).map(o => o || "_").join(",");
+  return `d=${d}|s=${s}`;
+};
+const decodeSetOptions = (encoded) => {
+  const result = { drinkOpts: [], dessertOpts: [] };
+  if (!encoded) return result;
+  encoded.split("|").forEach(part => {
+    if (part.startsWith("d=")) result.drinkOpts   = part.slice(2).split(",").map(o => o === "_" || o === "" ? null : o);
+    if (part.startsWith("s=")) result.dessertOpts = part.slice(2).split(",").map(o => o === "_" || o === "" ? null : o);
+  });
+  return result;
+};
+
+// ─── 테마 (각 테마 = 강조색 + 배경 그라데이션 두 톤) ───
+const PALETTE = [
+  { label: "하늘",        value: "#0EA5E9", bgFrom: "#e2f4fd", bgTo: "#a4e1ff" },
+  { label: "베이지브라운", value: "#A87B5D", bgFrom: "#f5e6d3", bgTo: "#d6b48f" },
+  { label: "노랑",        value: "#F59E0B", bgFrom: "#fef9c3", bgTo: "#fde68a" },
+  { label: "주황",        value: "#F97316", bgFrom: "#ffedd5", bgTo: "#fdba74" },
+  { label: "연두",        value: "#84CC16", bgFrom: "#ecfccb", bgTo: "#d9f99d" },
+  { label: "연보라",       value: "#A78BFA", bgFrom: "#ede9fe", bgTo: "#ddd6fe" },
+];
+const themeOf = v => PALETTE.find(p => p.value === v) || PALETTE[0];
+const bgOf = t => `linear-gradient(160deg, ${t.bgFrom} 0%, ${t.bgTo} 100%)`;
+
+// 기본 활성 메뉴: 카탈로그 순서 그대로 (음료는 사용자 지정 정렬 순)
+const DEFAULT_SETTINGS = {
+  storeName: "꼬망 카페",
+  themeColor: "#A87B5D", // 기본: 베이지브라운
+  useVibrationBell: true,
+  menuItems: {
+    drinks:   DRINKS.map(m   => ({ key: m.key, price: m.defaultPrice })),
+    desserts: DESSERTS.map(m => ({ key: m.key, price: m.defaultPrice })),
+    sets: [
+      { key: "set_default_1", name: "아메리카노 + 마들렌 세트", drinkKeys: ["americano"],   dessertKeys: ["madeleine"], price: 7000 },
+      { key: "set_default_2", name: "카페 라떼 + 스콘 세트",    drinkKeys: ["cafe_latte"],  dessertKeys: ["scone"],     price: 8500 },
+    ],
+  },
+};
+
+const fmtMoney = n => (n || 0).toLocaleString("ko-KR") + "원";
+
+const todayKey = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+};
+const nextOrderNumber = () => {
+  let data = { date: todayKey(), number: 0 };
+  try {
+    const stored = localStorage.getItem("cafe-order");
+    if (stored) {
+      const p = JSON.parse(stored);
+      if (p.date === todayKey()) data = p;
+    }
+  } catch {}
+  const next = data.number + 1;
+  try { localStorage.setItem("cafe-order", JSON.stringify({ date: todayKey(), number: next })); } catch {}
+  return next;
+};
+
+const isStandaloneMode = () => {
+  try {
+    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+           window.navigator.standalone === true;
+  } catch (e) { return false; }
+};
+
+const toggleFullscreen = () => {
+  if (isStandaloneMode()) {
+    alert("이미 전체화면(앱) 모드로 실행 중이에요.");
+    return;
+  }
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  if (!fsEl) {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    const fail = () => alert(
+      "이 브라우저는 전체화면을 직접 지원하지 않아요.\n\n" +
+      "iPhone Safari에서 사파리 UI까지 숨기시려면:\n" +
+      "1) 사파리 하단의 공유 버튼(□↑) 누르기\n" +
+      "2) '홈 화면에 추가' 선택\n" +
+      "3) 홈 화면에 생긴 아이콘으로 다시 열기"
+    );
+    if (req) {
+      try {
+        const p = req.call(el);
+        if (p && typeof p.catch === "function") p.catch(fail);
+      } catch (e) { fail(); }
+    } else {
+      fail();
+    }
+  } else {
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (exit) {
+      try { exit.call(document); } catch (e) {}
+    }
+  }
+};
+
+// ─── 스마트 결제 SVG (NFC 일러스트) ───
+function SmartPaySVG({ color }) {
+  return (
+    <svg viewBox="0 0 320 300" style={{ width: "min(70vw, 280px)", height: "auto", display: "block", margin: "0 auto" }} aria-hidden="true">
+      <g>
+        <rect x="60" y="220" width="200" height="64" rx="12" fill="#1f2937" />
+        <rect x="68" y="228" width="184" height="40" rx="8" fill="#0f172a" />
+        <rect x="80" y="240" width="160" height="16" rx="4" fill={color} opacity="0.9" />
+        <text x="160" y="278" textAnchor="middle" fill="#94a3b8" fontSize="11" fontWeight="700">CARD READER</text>
+      </g>
+      <g transform="translate(160 220)">
+        {[0, 0.5, 1].map((delay, i) => (
+          <circle key={i} cx="0" cy="0" r="22" fill="none" stroke={color} strokeWidth="4" style={{ animation: `waveOut 1.6s ease-out ${delay}s infinite`, transformOrigin: "160px 220px" }} />
+        ))}
+      </g>
+      <g style={{ animation: "phoneBob 2s ease-in-out infinite" }}>
+        <g transform="translate(90 18) rotate(-10 50 70)">
+          <rect x="0" y="0" width="100" height="150" rx="14" fill="#0f172a" />
+          <rect x="6" y="6" width="88" height="138" rx="10" fill="white" />
+          <circle cx="50" cy="13" r="2.2" fill="#0f172a" />
+          <rect x="14" y="26" width="72" height="100" rx="6" fill={`${color}18`} />
+          <circle cx="50" cy="64" r="16" fill={color} />
+          <text x="50" y="71" textAnchor="middle" fill="white" fontSize="22" fontWeight="900">₩</text>
+          <rect x="22" y="92" width="56" height="6" rx="3" fill={color} opacity="0.5" />
+          <rect x="30" y="105" width="40" height="5" rx="2.5" fill={color} opacity="0.35" />
+          <rect x="36" y="132" width="28" height="6" rx="3" fill="#0f172a" opacity="0.4" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+// ─── 세트 합성 이미지: 음료(왼쪽) + 디저트(오른쪽) 각 1~2개 배치 ───
+function SetImage({ drinkKeys = [], dessertKeys = [], showBadge = true, style = {} }) {
+  const drinks   = (drinkKeys   || []).slice(0, 2).map(k => catalogMap[k]).filter(Boolean);
+  const desserts = (dessertKeys || []).slice(0, 2).map(k => catalogMap[k]).filter(Boolean);
+
+  // 음료 위치: 왼쪽 영역. 1개면 크게, 2개면 위/아래로 분할
+  const drinkPos = drinks.length === 1
+    ? [{ left: "-3%", top: "6%", width: "60%", height: "86%" }]
+    : [
+        { left: "-5%", top: "2%",  width: "50%", height: "55%" },
+        { left: "10%", top: "44%", width: "50%", height: "55%" },
+      ];
+  // 디저트 위치: 오른쪽 영역. 1개면 크게, 2개면 상단(살짝 왼쪽) / 하단(상단보다 살짝 오른쪽, 잘림 방지)
+  const dessertPos = desserts.length === 1
+    ? [{ right: "-3%", bottom: "4%", width: "58%", height: "68%" }]
+    : [
+        { right: "13%", top: "5%",    width: "44%", height: "48%" },
+        { right: "1%",  bottom: "2%", width: "44%", height: "50%" },
+      ];
+
+  return (
+    <div style={{
+      position: "relative",
+      background: "linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)",
+      overflow: "hidden",
+      ...style
+    }}>
+      {drinks.map((d, i) => (
+        <img key={`d-${i}`} src={d.image} alt="" loading="lazy" style={{
+          position: "absolute", objectFit: "contain",
+          zIndex: 1 + i,
+          filter: "drop-shadow(2px 4px 6px rgba(0,0,0,0.10))",
+          ...drinkPos[i]
+        }} />
+      ))}
+      {desserts.map((d, i) => (
+        <img key={`s-${i}`} src={d.image} alt="" loading="lazy" style={{
+          position: "absolute", objectFit: "contain",
+          zIndex: 3 + i,
+          filter: "drop-shadow(-2px 4px 6px rgba(0,0,0,0.10))",
+          ...dessertPos[i]
+        }} />
+      ))}
+      {showBadge && (
+        <div style={{
+          position: "absolute", top: "6%", left: "6%",
+          background: "#DC2626", color: "white",
+          padding: "2px 8px", borderRadius: 999,
+          fontSize: 10, fontWeight: 900, letterSpacing: 1,
+          boxShadow: "0 2px 6px rgba(220,38,38,0.4)",
+          zIndex: 6
+        }}>SET</div>
+      )}
+    </div>
+  );
+}
+
+function CafeKiosk() {
+  const [screen, setScreen]               = useState("main");
+  const [settings, setSettings]           = useState(DEFAULT_SETTINGS);
+  const [editSettings, setEditSettings]   = useState(DEFAULT_SETTINGS);
+  const [orderType, setOrderType]         = useState("eatin");
+  const [orderCategory, setOrderCategory] = useState("drinks");
+  const [menuEditTab, setMenuEditTab]     = useState("drinks");
+  const [cart, setCart]                   = useState({});
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [orderNo, setOrderNo]             = useState(0);
+  const [dragState, setDragState]         = useState(null);
+  const [optionPopup, setOptionPopup]     = useState(null); // { menuKey, type: 'temp'|'heat', selected }
+  const timerRef = useRef(null);
+  const cartScrollRef = useRef(null);
+  const prevCartKeysRef = useRef(0);
+
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.href = "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap";
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
+    return () => { try { document.head.removeChild(link); } catch {} };
+  }, []);
+
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem("cafe-settings");
+      if (s) {
+        const p = JSON.parse(s);
+        // 마이그레이션: 카탈로그에 없는 키 정리, 누락 카테고리 채움
+        if (!p.menuItems || typeof p.menuItems !== "object") p.menuItems = DEFAULT_SETTINGS.menuItems;
+        ["drinks", "desserts"].forEach(cat => {
+          if (!Array.isArray(p.menuItems[cat])) p.menuItems[cat] = DEFAULT_SETTINGS.menuItems[cat];
+          else p.menuItems[cat] = p.menuItems[cat].filter(m => catalogMap[m.key] && categoryOf(m.key) === cat);
+          if (p.menuItems[cat].length === 0) p.menuItems[cat] = DEFAULT_SETTINGS.menuItems[cat];
+        });
+        // 세트: drinkKeys/dessertKeys 배열로 정규화, 카탈로그에 있는 것만 유효
+        if (!Array.isArray(p.menuItems.sets)) {
+          p.menuItems.sets = DEFAULT_SETTINGS.menuItems.sets.map(s => ({ ...s, drinkKeys: [...s.drinkKeys], dessertKeys: [...s.dessertKeys] }));
+        } else {
+          p.menuItems.sets = p.menuItems.sets.map(s => {
+            if (!s) return null;
+            const out = { ...s };
+            // 옛 단일 키 형식 → 배열 변환
+            if (out.drinkKey && !Array.isArray(out.drinkKeys)) { out.drinkKeys = [out.drinkKey]; }
+            if (out.dessertKey && !Array.isArray(out.dessertKeys)) { out.dessertKeys = [out.dessertKey]; }
+            delete out.drinkKey; delete out.dessertKey;
+            // 카탈로그에 있는 키만 유지, 최대 2개로 제한
+            out.drinkKeys = (out.drinkKeys || []).filter(k => DRINKS.some(d => d.key === k)).slice(0, 2);
+            out.dessertKeys = (out.dessertKeys || []).filter(k => DESSERTS.some(d => d.key === k)).slice(0, 2);
+            return out;
+          }).filter(s => s && s.drinkKeys.length > 0 && s.dessertKeys.length > 0);
+        }
+        if (!PALETTE.some(t => t.value === p.themeColor)) p.themeColor = DEFAULT_SETTINGS.themeColor;
+        const merged = { ...DEFAULT_SETTINGS, ...p };
+        setSettings(merged);
+        setEditSettings(merged);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => () => clearInterval(timerRef.current), []);
+
+  const cartKeys = Object.keys(cart);
+  useEffect(() => {
+    if (cartScrollRef.current && cartKeys.length > prevCartKeysRef.current) {
+      cartScrollRef.current.scrollTop = cartScrollRef.current.scrollHeight;
+    }
+    prevCartKeysRef.current = cartKeys.length;
+  }, [cartKeys.length]);
+
+  const theme = themeOf(settings.themeColor);
+  const editTheme = themeOf(editSettings.themeColor);
+  const th = theme.value;
+  const BG = bgOf(theme);
+
+  const openSettings = () => {
+    setEditSettings(JSON.parse(JSON.stringify(settings)));
+    setScreen("settings");
+  };
+
+  const saveSettings = () => {
+    if (!editSettings.storeName.trim()) { alert("가게 이름을 입력해 주세요."); return; }
+    const catLabel = { drinks: "음료", desserts: "디저트" };
+    for (const cat of ["drinks", "desserts"]) {
+      const items = editSettings.menuItems[cat] || [];
+      if (items.length < 1) { alert(`${catLabel[cat]} 메뉴는 최소 1개 이상 선택해야 합니다.`); return; }
+      for (const m of items) {
+        if (!Number.isFinite(m.price) || m.price <= 0) { alert(`'${catalogMap[m.key].name}'의 가격을 올바르게 입력해 주세요.`); return; }
+      }
+    }
+    // 세트 검증 (0개 허용, 음료/디저트 각 1~2개)
+    const sets = editSettings.menuItems.sets || [];
+    for (const s of sets) {
+      if (!s.name || !s.name.trim()) { alert("이름이 비어있는 세트가 있어요."); return; }
+      if (!Array.isArray(s.drinkKeys) || s.drinkKeys.length < 1) { alert(`'${s.name}' 세트의 음료를 1개 이상 선택해 주세요.`); return; }
+      if (s.drinkKeys.length > 2) { alert(`'${s.name}' 세트의 음료는 최대 2개까지 선택할 수 있어요.`); return; }
+      if (!Array.isArray(s.dessertKeys) || s.dessertKeys.length < 1) { alert(`'${s.name}' 세트의 디저트를 1개 이상 선택해 주세요.`); return; }
+      if (s.dessertKeys.length > 2) { alert(`'${s.name}' 세트의 디저트는 최대 2개까지 선택할 수 있어요.`); return; }
+      for (const k of s.drinkKeys)   if (!catalogMap[k]) { alert(`'${s.name}' 세트의 음료가 잘못됐어요.`); return; }
+      for (const k of s.dessertKeys) if (!catalogMap[k]) { alert(`'${s.name}' 세트의 디저트가 잘못됐어요.`); return; }
+      if (!Number.isFinite(s.price) || s.price <= 0) { alert(`'${s.name}' 세트의 가격을 올바르게 입력해 주세요.`); return; }
+    }
+    setSettings(editSettings);
+    try { localStorage.setItem("cafe-settings", JSON.stringify(editSettings)); } catch {}
+    setScreen("main");
+  };
+
+  const startOrder = type => {
+    setOrderType(type);
+    setCart({});
+    setOrderCategory("drinks");
+    setScreen("order");
+  };
+
+  // 메뉴 카드 클릭: 옵션이 필요하면 팝업, 아니면 바로 카트에 담음
+  const onMenuClick = (menuKey) => {
+    // 세트인지 확인
+    const setData = (settings.menuItems.sets || []).find(s => s.key === menuKey);
+    if (setData) {
+      const drinkOpts   = (setData.drinkKeys   || []).map(k => needsTemp(k) ? "hot"  : null);
+      const dessertOpts = (setData.dessertKeys || []).map(k => needsHeat(k) ? "warm" : null);
+      const hasAny = drinkOpts.some(o => o !== null) || dessertOpts.some(o => o !== null);
+      if (hasAny) {
+        setOptionPopup({
+          menuKey, isSet: true,
+          drinkKeys:   [...setData.drinkKeys],
+          dessertKeys: [...setData.dessertKeys],
+          drinkOpts, dessertOpts,
+        });
+      } else {
+        addToCart(menuKey, null);
+      }
+      return;
+    }
+    // 단일 메뉴
+    if (needsTemp(menuKey)) {
+      setOptionPopup({ menuKey, isSet: false, type: "temp", selected: "hot" });
+    } else if (needsHeat(menuKey)) {
+      setOptionPopup({ menuKey, isSet: false, type: "heat", selected: "warm" });
+    } else {
+      addToCart(menuKey, null);
+    }
+  };
+
+  const addToCart = (menuKey, option) => {
+    const ck = cartKeyOf(menuKey, option);
+    setCart(c => ({ ...c, [ck]: (c[ck] || 0) + 1 }));
+  };
+  const decFromCart = ck => setCart(c => {
+    const n = { ...c };
+    if ((n[ck] || 0) <= 1) delete n[ck]; else n[ck] -= 1;
+    return n;
+  });
+  const incFromCart = ck => setCart(c => ({ ...c, [ck]: (c[ck] || 0) + 1 }));
+  const removeFromCart = ck => setCart(c => { const n = { ...c }; delete n[ck]; return n; });
+
+  const confirmOption = () => {
+    if (!optionPopup) return;
+    if (optionPopup.isSet) {
+      const encoded = encodeSetOptions(optionPopup.drinkOpts, optionPopup.dessertOpts);
+      addToCart(optionPopup.menuKey, encoded);
+    } else {
+      addToCart(optionPopup.menuKey, optionPopup.selected);
+    }
+    setOptionPopup(null);
+  };
+
+  const cartItems = Object.entries(cart).map(([ck, q]) => {
+    const { menuKey, option } = parseCartKey(ck);
+    // 일반 음료/디저트
+    if (catalogMap[menuKey]) {
+      const cat = catalogMap[menuKey];
+      const category = categoryOf(menuKey);
+      const m = (settings.menuItems[category] || []).find(x => x.key === menuKey);
+      return { cartKey: ck, key: menuKey, name: cat.name, image: cat.image, qty: q, price: m ? m.price : 0, category, option, isSet: false };
+    }
+    // 사용자 정의 세트
+    const setData = (settings.menuItems.sets || []).find(s => s.key === menuKey);
+    if (setData) {
+      return { cartKey: ck, key: menuKey, name: setData.name, drinkKeys: setData.drinkKeys || [], dessertKeys: setData.dessertKeys || [], qty: q, price: setData.price, category: "sets", option, isSet: true };
+    }
+    return null;
+  }).filter(Boolean);
+  const total = cartItems.reduce((s, it) => s + it.price * it.qty, 0);
+  const totalQty = cartItems.reduce((s, it) => s + it.qty, 0);
+
+  // 카트/확인 화면에서 옵션을 사람이 읽을 수 있게 변환
+  const formatItemOption = (item) => {
+    if (!item.option) return null;
+    if (!item.isSet) return OPTION_LABEL[item.option] || null;
+    const { drinkOpts, dessertOpts } = decodeSetOptions(item.option);
+    const parts = [];
+    (item.drinkKeys || []).forEach((k, i) => {
+      if (drinkOpts[i] && OPTION_LABEL[drinkOpts[i]]) parts.push(`${catalogMap[k]?.name || k} · ${OPTION_LABEL[drinkOpts[i]]}`);
+    });
+    (item.dessertKeys || []).forEach((k, i) => {
+      if (dessertOpts[i] && OPTION_LABEL[dessertOpts[i]]) parts.push(`${catalogMap[k]?.name || k} · ${OPTION_LABEL[dessertOpts[i]]}`);
+    });
+    return parts.length ? parts : null;
+  };
+
+  const doPay = method => {
+    setPaymentMethod(method);
+    setScreen("processing");
+    timerRef.current = setTimeout(() => {
+      const num = nextOrderNumber();
+      setOrderNo(num);
+      setScreen("done");
+      timerRef.current = setTimeout(() => {
+        setCart({});
+        setOrderNo(0);
+        setPaymentMethod("");
+        setScreen("main");
+      }, 4000);
+    }, 2800);
+  };
+
+  // ─── 드래그 (음료/디저트 두 카테고리 별로) ───
+  const startDrag = (category, fromIdx) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragState({ category, fromIdx, currentIdx: fromIdx });
+    const onMove = (ev) => {
+      const rows = document.querySelectorAll(`[data-menu-row^="${category}-"]`);
+      let overIdx = null;
+      rows.forEach(el => {
+        const rect = el.getBoundingClientRect();
+        if (ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
+          const parts = el.dataset.menuRow.split('-');
+          overIdx = parseInt(parts[parts.length - 1], 10);
+        }
+      });
+      if (overIdx !== null) setDragState(s => s ? { ...s, currentIdx: overIdx } : null);
+    };
+    const onUp = () => {
+      setDragState(s => {
+        if (s && s.fromIdx !== s.currentIdx) {
+          setEditSettings(es => {
+            const items = { ...es.menuItems };
+            const arr = [...items[s.category]];
+            const [moved] = arr.splice(s.fromIdx, 1);
+            arr.splice(s.currentIdx, 0, moved);
+            items[s.category] = arr;
+            return { ...es, menuItems: items };
+          });
+        }
+        return null;
+      });
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+  };
+
+  const FULL = { height: "100%", display: "flex", flexDirection: "column", fontFamily: "'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" };
+
+  const TopRightControls = () => (
+    <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 10, zIndex: 10 }}>
+      <button onClick={toggleFullscreen} aria-label="전체화면" style={{
+        background: "rgba(255,255,255,0.86)", border: "3px solid rgba(255,255,255,.95)",
+        borderRadius: "50%", width: "clamp(44px, 6.5vw, 58px)", height: "clamp(44px, 6.5vw, 58px)",
+        fontSize: "clamp(17px, 2.6vw, 22px)", display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: `0 10px 22px ${th}30`, cursor: "pointer", backdropFilter: "blur(8px)"
+      }}>⛶</button>
+      <button onClick={openSettings} aria-label="설정" style={{
+        background: "rgba(255,255,255,0.86)", border: "3px solid rgba(255,255,255,.95)",
+        borderRadius: "50%", width: "clamp(44px, 6.5vw, 58px)", height: "clamp(44px, 6.5vw, 58px)",
+        fontSize: "clamp(19px, 3vw, 26px)", display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: `0 10px 22px ${th}30`, cursor: "pointer", backdropFilter: "blur(8px)"
+      }}>⚙️</button>
+    </div>
+  );
+
+  // ───────────────── MAIN ─────────────────
+  if (screen === "main") return (
+    <div style={{ ...FULL, background: BG, position: "relative", overflow: "hidden", color: "#0f172a" }}>
+      <TopRightControls />
+
+      <img src="drinks/americano.png" alt="" aria-hidden="true" style={{
+        position: "absolute", left: "-2%", bottom: "-2%", width: "min(30vw, 320px)",
+        opacity: 0.92, animation: "floatY 5s ease-in-out infinite",
+        pointerEvents: "none", userSelect: "none", filter: "drop-shadow(0 18px 24px rgba(15,23,42,.18))"
+      }} />
+      <img src="desserts/macaron.png" alt="" aria-hidden="true" style={{
+        position: "absolute", right: "-2%", bottom: "-2%", width: "min(32vw, 340px)",
+        opacity: 0.94, animation: "floatY 6s ease-in-out infinite reverse",
+        pointerEvents: "none", userSelect: "none", filter: "drop-shadow(0 18px 24px rgba(15,23,42,.18))"
+      }} />
+
+      {["☕","✦","♡","🍰","✦"].map((d, i) => (
+        <span key={i} style={{
+          position: "absolute",
+          left: ["8%","82%","20%","75%","50%"][i],
+          top:  ["12%","16%","68%","62%","8%"][i],
+          color: i % 2 ? `${th}88` : "rgba(255,255,255,.92)",
+          fontSize: ["34px","42px","28px","36px","30px"][i],
+          fontWeight: 900, pointerEvents: "none",
+          animation: `floatY ${3.5 + i * 0.4}s ease-in-out infinite`,
+        }}>{d}</span>
+      ))}
+
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px 40px", position: "relative", zIndex: 2 }}>
+        <div style={{ textAlign: "center", marginBottom: "clamp(28px, 5vh, 56px)", animation: "pop .6s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+          <div style={{
+            fontSize: "clamp(38px, 7vw, 78px)", fontWeight: 900, letterSpacing: "-2px",
+            color: th, textShadow: "0 4px 0 #fff, 0 10px 24px rgba(15,23,42,.12)", marginBottom: 14
+          }}>{settings.storeName}</div>
+          <div style={{
+            fontSize: "clamp(18px, 2.8vw, 28px)", fontWeight: 800, color: th,
+            background: "rgba(255,255,255,.78)", padding: "10px 22px", borderRadius: 999,
+            display: "inline-block", boxShadow: "0 6px 18px rgba(15,23,42,.08)"
+          }}>☕ 카페 키오스크 🍰</div>
+        </div>
+
+        <div style={{ display: "flex", gap: "clamp(14px, 3vw, 28px)", flexWrap: "wrap", justifyContent: "center", width: "100%", maxWidth: 760 }}>
+          {[
+            { type: "eatin",   label: "먹고 가기", emoji: "☕" },
+            { type: "takeout", label: "포장하기", emoji: "🥡" },
+          ].map(b => (
+            <button key={b.type} onClick={() => startOrder(b.type)} style={{
+              flex: "1 1 280px", minWidth: 240, minHeight: 200,
+              background: "rgba(255,255,255,0.94)", color: "#0f172a",
+              border: `3px solid ${th}`, borderRadius: 28, padding: "32px 24px",
+              fontSize: "clamp(24px, 3.5vw, 34px)", fontWeight: 900,
+              cursor: "pointer", boxShadow: `0 14px 30px ${th}33`,
+              transition: "transform .2s",
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12
+            }}
+            onMouseDown={e => e.currentTarget.style.transform = "scale(.97)"}
+            onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
+            onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+            >
+              <span style={{ fontSize: "clamp(50px, 7vw, 78px)" }}>{b.emoji}</span>
+              <span>{b.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ───────────────── SETTINGS ─────────────────
+  if (screen === "settings") {
+    const eth = editTheme.value;
+
+    // ─── 세트 메뉴 편집 UI (음료/디저트 각 최대 2개 조합) ───
+    const renderSetsBody = () => {
+      const sets = editSettings.menuItems.sets || [];
+      const addSet = () => setEditSettings(s => ({ ...s, menuItems: { ...s.menuItems, sets: [...(s.menuItems.sets || []), { key: newSetKey(), name: "새 세트", drinkKeys: [], dessertKeys: [], price: 7000 }] } }));
+      const updateSet = (idx, patch) => setEditSettings(s => ({ ...s, menuItems: { ...s.menuItems, sets: s.menuItems.sets.map((x, i) => i === idx ? { ...x, ...patch } : x) } }));
+      const deleteSet = (idx) => setEditSettings(s => ({ ...s, menuItems: { ...s.menuItems, sets: s.menuItems.sets.filter((_, i) => i !== idx) } }));
+      // 음료/디저트 토글: 클릭으로 추가/제거, 최대 2개, 최소 1개
+      const toggleSetItem = (setIdx, field, itemKey) => setEditSettings(s => {
+        const sets = [...s.menuItems.sets];
+        const set = { ...sets[setIdx] };
+        const arr = [...(set[field] || [])];
+        const pos = arr.indexOf(itemKey);
+        if (pos >= 0) {
+          arr.splice(pos, 1); // 0개까지 허용 (저장 시 검증)
+        } else {
+          if (arr.length >= 2) return s; // 최대 2개
+          arr.push(itemKey);
+        }
+        set[field] = arr;
+        sets[setIdx] = set;
+        return { ...s, menuItems: { ...s.menuItems, sets } };
+      });
+
+      return (
+        <div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
+            <span style={{ fontSize: 13, color: "#64748b", fontWeight: 700 }}>{sets.length}개 세트</span>
+          </div>
+          <div style={{ background: `${eth}10`, border: `1.5px dashed ${eth}70`, borderRadius: 10, padding: "9px 13px", margin: "8px 0 14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+              <span style={{ fontSize: 18, color: eth, fontWeight: 900 }}>🎁</span>
+              <span style={{ fontSize: 12.5, color: "#334155", fontWeight: 700 }}>음료 + 디저트를 조합해 세트를 직접 만들 수 있어요</span>
+            </div>
+            <div style={{ fontSize: 11.5, color: "#64748b", paddingLeft: 28 }}>↕ 손잡이로 순서 변경 · 카드 클릭으로 음료/디저트 선택</div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {sets.map((s, idx) => {
+              const isDragging = dragState && dragState.category === "sets" && dragState.fromIdx === idx;
+              const showLine = dragState && dragState.category === "sets" && dragState.fromIdx !== idx && dragState.currentIdx === idx;
+              const lineAtTop = showLine && dragState.fromIdx > idx;
+              const lineAtBottom = showLine && dragState.fromIdx < idx;
+              return (
+                <div key={s.key} data-menu-row={`sets-${idx}`} style={{ position: "relative" }}>
+                  {lineAtTop && <div style={{ position: "absolute", top: -7, left: 0, right: 0, height: 4, background: eth, borderRadius: 2, boxShadow: `0 0 10px ${eth}aa`, zIndex: 5 }} />}
+                  <div style={{
+                    border: `2px solid ${isDragging ? eth : eth + "30"}`,
+                    background: isDragging ? `${eth}18` : "white",
+                    borderRadius: 14, padding: 12,
+                    opacity: isDragging ? 0.55 : 1,
+                    transform: isDragging ? "scale(0.98)" : "scale(1)",
+                    transition: isDragging ? "none" : "opacity .15s, background .15s, border-color .15s, transform .15s",
+                    userSelect: "none"
+                  }}>
+                    {/* 상단: 드래그 + 합성 미리보기 + 이름/가격 + 삭제 */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                      <div
+                        onPointerDown={startDrag("sets", idx)}
+                        title="드래그하여 순서를 바꿀 수 있어요"
+                        style={{
+                          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
+                          width: 32, height: 60, color: eth,
+                          cursor: isDragging ? "grabbing" : "grab",
+                          touchAction: "none", flexShrink: 0,
+                          background: `${eth}20`, borderRadius: 8, lineHeight: 1
+                        }}>
+                        <span style={{ fontSize: 16, fontWeight: 900, letterSpacing: -3 }}>⋮⋮</span>
+                        <span style={{ fontSize: 9, fontWeight: 800 }}>이동</span>
+                      </div>
+                      <SetImage drinkKeys={s.drinkKeys} dessertKeys={s.dessertKeys} style={{ width: 60, height: 60, borderRadius: 10, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+                        <input
+                          value={s.name}
+                          onChange={e => updateSet(idx, { name: e.target.value })}
+                          placeholder="세트 이름"
+                          style={{ padding: "8px 10px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, fontWeight: 700, outline: "none", fontFamily: "inherit" }}
+                          onFocus={e => e.target.style.borderColor = eth}
+                          onBlur={e => e.target.style.borderColor = "#e2e8f0"}
+                        />
+                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <input
+                            type="number"
+                            value={s.price}
+                            onChange={e => { const n = parseInt(String(e.target.value).replace(/[^0-9]/g, ""), 10); updateSet(idx, { price: Number.isFinite(n) ? n : 0 }); }}
+                            style={{ width: 100, padding: "6px 8px", border: "1.5px solid #cbd5e1", borderRadius: 8, fontSize: 13, outline: "none", textAlign: "right" }}
+                          />
+                          <span style={{ fontSize: 13, color: "#475569" }}>원</span>
+                        </div>
+                      </div>
+                      <button onClick={() => deleteSet(idx)} title="세트 삭제" style={{ width: 32, height: 32, border: "none", borderRadius: 8, background: "#fee2e2", color: "#dc2626", cursor: "pointer", fontSize: 16, fontWeight: 800, flexShrink: 0 }}>−</button>
+                    </div>
+
+                    {/* 음료 픽커 (최대 2개) */}
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                        <span>🥤 음료 선택</span>
+                        <span style={{ color: (s.drinkKeys || []).length === 0 ? "#dc2626" : (s.drinkKeys || []).length >= 2 ? eth : "#94a3b8", fontWeight: 800 }}>{(s.drinkKeys || []).length}/2</span>
+                        <span style={{ color: eth, fontWeight: 600, marginLeft: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>· {(s.drinkKeys || []).map(k => catalogMap[k]?.name).filter(Boolean).join(" + ") || "—"}</span>
+                      </div>
+                      <div className="scrollY" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
+                        {DRINKS.map(d => {
+                          const selPos = (s.drinkKeys || []).indexOf(d.key);
+                          const sel = selPos >= 0;
+                          const atMax = !sel && (s.drinkKeys || []).length >= 2;
+                          return (
+                            <button key={d.key} onClick={() => toggleSetItem(idx, "drinkKeys", d.key)} disabled={atMax} style={{
+                              flex: "0 0 auto", border: sel ? `2px solid ${eth}` : "2px solid transparent",
+                              background: sel ? `${eth}15` : "#f8fafc", borderRadius: 10, padding: 4,
+                              cursor: atMax ? "not-allowed" : "pointer", opacity: atMax ? 0.35 : 1,
+                              display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                              width: 70, transition: "all .15s", position: "relative"
+                            }}>
+                              {sel && (
+                                <span style={{
+                                  position: "absolute", top: -4, right: -4, width: 18, height: 18,
+                                  background: eth, color: "white", borderRadius: "50%",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  fontSize: 10, fontWeight: 900, zIndex: 2, boxShadow: `0 2px 6px ${eth}66`
+                                }}>{selPos + 1}</span>
+                              )}
+                              <img src={d.image} alt="" loading="lazy" style={{ width: 50, height: 50, objectFit: "contain", borderRadius: 6 }} />
+                              <span style={{ fontSize: 10, color: sel ? eth : "#475569", fontWeight: 700, lineHeight: 1.2, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>{d.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 디저트 픽커 (최대 2개) */}
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                        <span>🍰 디저트 선택</span>
+                        <span style={{ color: (s.dessertKeys || []).length === 0 ? "#dc2626" : (s.dessertKeys || []).length >= 2 ? eth : "#94a3b8", fontWeight: 800 }}>{(s.dessertKeys || []).length}/2</span>
+                        <span style={{ color: eth, fontWeight: 600, marginLeft: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>· {(s.dessertKeys || []).map(k => catalogMap[k]?.name).filter(Boolean).join(" + ") || "—"}</span>
+                      </div>
+                      <div className="scrollY" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
+                        {DESSERTS.map(d => {
+                          const selPos = (s.dessertKeys || []).indexOf(d.key);
+                          const sel = selPos >= 0;
+                          const atMax = !sel && (s.dessertKeys || []).length >= 2;
+                          return (
+                            <button key={d.key} onClick={() => toggleSetItem(idx, "dessertKeys", d.key)} disabled={atMax} style={{
+                              flex: "0 0 auto", border: sel ? `2px solid ${eth}` : "2px solid transparent",
+                              background: sel ? `${eth}15` : "#f8fafc", borderRadius: 10, padding: 4,
+                              cursor: atMax ? "not-allowed" : "pointer", opacity: atMax ? 0.35 : 1,
+                              display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                              width: 70, transition: "all .15s", position: "relative"
+                            }}>
+                              {sel && (
+                                <span style={{
+                                  position: "absolute", top: -4, right: -4, width: 18, height: 18,
+                                  background: eth, color: "white", borderRadius: "50%",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  fontSize: 10, fontWeight: 900, zIndex: 2, boxShadow: `0 2px 6px ${eth}66`
+                                }}>{selPos + 1}</span>
+                              )}
+                              <img src={d.image} alt="" loading="lazy" style={{ width: 50, height: 50, objectFit: "contain", borderRadius: 6 }} />
+                              <span style={{ fontSize: 10, color: sel ? eth : "#475569", fontWeight: 700, lineHeight: 1.2, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>{d.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  {lineAtBottom && <div style={{ position: "absolute", bottom: -7, left: 0, right: 0, height: 4, background: eth, borderRadius: 2, boxShadow: `0 0 10px ${eth}aa`, zIndex: 5 }} />}
+                </div>
+              );
+            })}
+          </div>
+
+          <button onClick={addSet} style={{
+            marginTop: 14, width: "100%", padding: "14px", fontSize: 15, fontWeight: 700,
+            border: `1.5px dashed ${eth}80`,
+            background: `${eth}08`, color: eth, borderRadius: 12, cursor: "pointer", fontFamily: "inherit"
+          }}>+ 새 세트 만들기</button>
+          {sets.length === 0 && (
+            <p style={{ fontSize: 13, color: "#94a3b8", marginTop: 16, textAlign: "center" }}>세트가 없어요. 위 버튼으로 만들어 주세요.</p>
+          )}
+        </div>
+      );
+    };
+
+    const renderMenuBody = (category) => {
+      const items = editSettings.menuItems[category] || [];
+      const catalogList = CATALOG[category];
+      const enabledKeys = new Set(items.map(m => m.key));
+      const disabledItems = catalogList.filter(m => !enabledKeys.has(m.key));
+
+      const toggleMenu = key => setEditSettings(s => {
+        const cur = s.menuItems[category];
+        const isEnabled = cur.some(m => m.key === key);
+        const newItems = { ...s.menuItems };
+        if (isEnabled) newItems[category] = cur.filter(m => m.key !== key);
+        else newItems[category] = [...cur, { key, price: catalogMap[key].defaultPrice }];
+        return { ...s, menuItems: newItems };
+      });
+      const setPrice = (key, v) => {
+        const n = parseInt(String(v).replace(/[^0-9]/g, ""), 10);
+        setEditSettings(s => ({ ...s, menuItems: { ...s.menuItems, [category]: s.menuItems[category].map(m => m.key === key ? { ...m, price: Number.isFinite(n) ? n : 0 } : m) } }));
+      };
+
+      return (
+        <div>
+          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "baseline", marginBottom: 4 }}>
+            <span style={{ fontSize: 13, color: items.length < 1 ? "#dc2626" : "#64748b", fontWeight: 700 }}>{items.length}개 선택 (최소 1개)</span>
+          </div>
+          <div style={{ background: `${eth}10`, border: `1.5px dashed ${eth}70`, borderRadius: 10, padding: "9px 13px", margin: "8px 0 14px", display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 18, color: eth, fontWeight: 900 }}>↕</span>
+            <span style={{ fontSize: 12.5, color: "#334155", fontWeight: 700 }}>왼쪽 손잡이(⋮⋮)를 잡고 끌어서 순서를 바꿀 수 있어요</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {items.map((m, idx) => {
+              const cat = catalogMap[m.key];
+              const isDragging = dragState && dragState.category === category && dragState.fromIdx === idx;
+              const showLine = dragState && dragState.category === category && dragState.fromIdx !== idx && dragState.currentIdx === idx;
+              const lineAtTop = showLine && dragState.fromIdx > idx;
+              const lineAtBottom = showLine && dragState.fromIdx < idx;
+              return (
+                <div key={m.key} data-menu-row={`${category}-${idx}`} style={{ position: "relative" }}>
+                  {lineAtTop && <div style={{ position: "absolute", top: -6, left: 0, right: 0, height: 4, background: eth, borderRadius: 2, boxShadow: `0 0 10px ${eth}aa`, zIndex: 5 }} />}
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: 10,
+                    border: `2px solid ${isDragging ? eth : eth + "30"}`,
+                    background: isDragging ? `${eth}22` : `${eth}08`,
+                    borderRadius: 12,
+                    opacity: isDragging ? 0.55 : 1,
+                    transform: isDragging ? "scale(0.98)" : "scale(1)",
+                    transition: isDragging ? "none" : "opacity .15s, background .15s, border-color .15s, transform .15s",
+                    userSelect: "none"
+                  }}>
+                    <div
+                      onPointerDown={startDrag(category, idx)}
+                      title="드래그하여 순서를 바꿀 수 있어요"
+                      style={{
+                        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
+                        width: 32, height: 48, color: eth,
+                        cursor: isDragging ? "grabbing" : "grab",
+                        touchAction: "none", userSelect: "none", flexShrink: 0,
+                        background: `${eth}20`, borderRadius: 8, lineHeight: 1
+                      }}
+                    >
+                      <span style={{ fontSize: 16, fontWeight: 900, letterSpacing: -3 }}>⋮⋮</span>
+                      <span style={{ fontSize: 9, fontWeight: 800 }}>이동</span>
+                    </div>
+                    <img src={cat.image} alt="" style={{ width: 50, height: 50, objectFit: "contain", borderRadius: 10, background: "#f1f5f9", flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cat.name}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+                        <input
+                          type="number"
+                          value={m.price}
+                          onChange={e => setPrice(m.key, e.target.value)}
+                          style={{ width: 90, padding: "6px 8px", border: "1.5px solid #cbd5e1", borderRadius: 8, fontSize: 13, outline: "none", textAlign: "right" }}
+                        />
+                        <span style={{ fontSize: 13, color: "#475569" }}>원</span>
+                      </div>
+                    </div>
+                    <button onClick={() => toggleMenu(m.key)} disabled={items.length <= 1} style={{ width: 32, height: 32, border: "none", borderRadius: 8, background: items.length <= 1 ? "#f1f5f9" : "#fee2e2", color: items.length <= 1 ? "#cbd5e1" : "#dc2626", cursor: items.length <= 1 ? "default" : "pointer", fontSize: 16, fontWeight: 800, flexShrink: 0 }}>−</button>
+                  </div>
+                  {lineAtBottom && <div style={{ position: "absolute", bottom: -6, left: 0, right: 0, height: 4, background: eth, borderRadius: 2, boxShadow: `0 0 10px ${eth}aa`, zIndex: 5 }} />}
+                </div>
+              );
+            })}
+          </div>
+          {disabledItems.length > 0 && (
+            <>
+              <div style={{ height: 1, background: "#e2e8f0", margin: "18px 0 14px" }} />
+              <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: "#64748b" }}>추가할 수 있는 메뉴</h4>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 8 }}>
+                {disabledItems.map(m => (
+                  <button key={m.key} onClick={() => toggleMenu(m.key)} style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: 8,
+                    border: "1.5px dashed #cbd5e1", background: "white", borderRadius: 10, cursor: "pointer", textAlign: "left"
+                  }}>
+                    <img src={m.image} alt="" style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 6, background: "#f1f5f9" }} />
+                    <span style={{ fontSize: 12, color: "#334155", fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
+                    <span style={{ color: eth, fontWeight: 800, fontSize: 18 }}>+</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      );
+    };
+
+    return (
+      <div style={{ ...FULL, background: "#f8fafc" }}>
+        <div style={{ background: eth, padding: "16px 20px 18px", color: "white", flexShrink: 0 }}>
+          <button onClick={() => setScreen("main")} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.85)", fontSize: 14, cursor: "pointer", padding: 0, marginBottom: 8 }}>← 이전</button>
+          <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>설정</h2>
+        </div>
+
+        <div className="scrollY" style={{ flex: 1, overflowY: "auto", padding: "22px 18px 32px" }}>
+          <div style={{ maxWidth: 880, margin: "0 auto" }}>
+            {/* 가게 이름 */}
+            <section style={{ background: "white", borderRadius: 18, padding: 20, marginBottom: 16, boxShadow: "0 4px 18px rgba(15,23,42,.06)" }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 12, color: "#334155" }}>가게 이름</h3>
+              <input
+                value={editSettings.storeName}
+                onChange={e => setEditSettings(s => ({ ...s, storeName: e.target.value }))}
+                placeholder="가게 이름"
+                style={{ width: "100%", padding: 14, border: "2px solid #e2e8f0", borderRadius: 12, fontSize: 16, outline: "none" }}
+                onFocus={e => e.target.style.borderColor = eth}
+                onBlur={e => e.target.style.borderColor = "#e2e8f0"}
+              />
+            </section>
+
+            {/* 테마 컬러 */}
+            <section style={{ background: "white", borderRadius: 18, padding: 20, marginBottom: 16, boxShadow: "0 4px 18px rgba(15,23,42,.06)" }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 4, color: "#334155" }}>테마 색상</h3>
+              <p style={{ fontSize: 12, color: "#64748b", marginBottom: 14 }}>선택한 색으로 화면 배경까지 함께 바뀝니다</p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 12 }}>
+                {PALETTE.map(c => {
+                  const selected = editSettings.themeColor === c.value;
+                  return (
+                    <button key={c.value} onClick={() => setEditSettings(s => ({ ...s, themeColor: c.value }))} style={{
+                      background: bgOf(c), border: selected ? `3px solid ${c.value}` : "3px solid transparent",
+                      borderRadius: 14, padding: "14px 8px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                      boxShadow: selected ? `0 6px 16px ${c.value}55` : "0 2px 8px rgba(15,23,42,.06)",
+                      transition: "all .15s"
+                    }}>
+                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: c.value, boxShadow: "0 2px 6px rgba(0,0,0,0.18)" }} />
+                      <span style={{ fontSize: 13, color: "#1f2937", fontWeight: 700 }}>{c.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* 진동벨 */}
+            <section style={{ background: "white", borderRadius: 18, padding: 20, marginBottom: 16, boxShadow: "0 4px 18px rgba(15,23,42,.06)" }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 12, color: "#334155" }}>진동벨</h3>
+              <div style={{ display: "flex", gap: 12 }}>
+                {[{ k: true, l: "사용" }, { k: false, l: "사용 안 함" }].map(o => (
+                  <button key={String(o.k)} onClick={() => setEditSettings(s => ({ ...s, useVibrationBell: o.k }))} style={{
+                    flex: 1, padding: "14px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer",
+                    border: `2px solid ${editSettings.useVibrationBell === o.k ? eth : "#e2e8f0"}`,
+                    background: editSettings.useVibrationBell === o.k ? `${eth}18` : "white",
+                    color: editSettings.useVibrationBell === o.k ? eth : "#475569"
+                  }}>{o.l}</button>
+                ))}
+              </div>
+            </section>
+
+            {/* 판매 메뉴 (음료/디저트 탭 전환) */}
+            <section style={{ background: "white", borderRadius: 18, padding: 20, marginBottom: 16, boxShadow: "0 4px 18px rgba(15,23,42,.06)" }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 12, color: "#334155" }}>판매 메뉴</h3>
+              <div style={{ display: "flex", gap: 8, marginBottom: 16, padding: 4, background: "#f1f5f9", borderRadius: 12 }}>
+                {[
+                  { k: "drinks",   l: "🥤 음료",   c: (editSettings.menuItems.drinks   || []).length },
+                  { k: "desserts", l: "🍰 디저트", c: (editSettings.menuItems.desserts || []).length },
+                  { k: "sets",     l: "🎁 세트",   c: (editSettings.menuItems.sets     || []).length },
+                ].map(t => {
+                  const active = menuEditTab === t.k;
+                  return (
+                    <button key={t.k} onClick={() => setMenuEditTab(t.k)} style={{
+                      flex: 1, padding: "10px 12px", border: "none", borderRadius: 9,
+                      background: active ? "white" : "transparent",
+                      color: active ? eth : "#64748b",
+                      fontSize: 14, fontWeight: 800, cursor: "pointer",
+                      boxShadow: active ? "0 2px 8px rgba(15,23,42,.08)" : "none",
+                      transition: "all .15s",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                    }}>
+                      <span>{t.l}</span>
+                      <span style={{
+                        fontSize: 11, fontWeight: 700,
+                        background: active ? `${eth}18` : "#e2e8f0",
+                        color: active ? eth : "#64748b",
+                        padding: "2px 8px", borderRadius: 999
+                      }}>{t.c}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {menuEditTab === "sets" ? renderSetsBody() : renderMenuBody(menuEditTab)}
+            </section>
+
+            <button onClick={saveSettings} style={{
+              background: eth, color: "white", border: "none", borderRadius: 14,
+              padding: 18, fontSize: 17, fontWeight: 800, width: "100%", cursor: "pointer",
+              boxShadow: `0 8px 22px ${eth}55`
+            }}>저장하기</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ───────────────── ORDER ─────────────────
+  if (screen === "order") {
+    const menus = orderCategory === "sets"
+      ? (settings.menuItems.sets || []).map(s => ({ key: s.key, name: s.name, price: s.price, drinkKeys: s.drinkKeys || [], dessertKeys: s.dessertKeys || [], isSet: true }))
+      : (settings.menuItems[orderCategory] || []).map(m => ({ ...catalogMap[m.key], price: m.price, isSet: false })).filter(Boolean);
+    return (
+      <div style={{ ...FULL, background: BG }}>
+        {/* 헤더 */}
+        <div style={{ background: th, color: "white", padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <button onClick={() => setScreen("main")} style={{ background: "rgba(255,255,255,.18)", border: "none", color: "white", padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 14 }}>← 이전</button>
+          <h2 style={{ flex: 1, fontSize: 20, fontWeight: 800, margin: 0 }}>
+            {orderType === "eatin" ? "☕ 먹고 가기" : "🥡 포장하기"}
+          </h2>
+        </div>
+
+        {/* 카테고리 탭 */}
+        <div style={{ flexShrink: 0, background: "rgba(255,255,255,0.65)", borderBottom: `1px solid ${th}30`, padding: "10px 12px" }}>
+          <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", gap: 8 }}>
+            {[
+              { k: "drinks",   l: "🥤 음료" },
+              { k: "desserts", l: "🍰 디저트" },
+              { k: "sets",     l: "🎁 세트" },
+            ].map(t => {
+              const active = orderCategory === t.k;
+              return (
+                <button key={t.k} onClick={() => setOrderCategory(t.k)} style={{
+                  flex: 1, padding: "12px 14px", border: "none", borderRadius: 12,
+                  background: active ? th : "white",
+                  color: active ? "white" : "#475569",
+                  fontSize: "clamp(15px, 2vw, 18px)", fontWeight: 800,
+                  cursor: "pointer", boxShadow: active ? `0 8px 18px ${th}55` : "0 2px 6px rgba(15,23,42,.06)",
+                  transition: "all .15s"
+                }}>{t.l}</button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 메뉴 영역 (스크롤) */}
+        <div className="scrollY" style={{ flex: 1, overflowY: "auto", padding: "14px 12px", minHeight: 0 }}>
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "clamp(8px, 1.4vw, 14px)", maxWidth: 1100, margin: "0 auto"
+          }}>
+            {menus.map(m => {
+              // 같은 키의 모든 옵션 변형 수량 합산
+              const qty = Object.entries(cart).reduce((sum, [ck, q]) => parseCartKey(ck).menuKey === m.key ? sum + q : sum, 0);
+              return (
+                <button key={m.key} onClick={() => onMenuClick(m.key)} style={{
+                  background: "white", border: qty > 0 ? `3px solid ${th}` : "3px solid white",
+                  borderRadius: 16, padding: "10px 10px 12px", cursor: "pointer", textAlign: "center",
+                  boxShadow: qty > 0 ? `0 10px 22px ${th}40` : "0 4px 14px rgba(15,23,42,.08)",
+                  transition: "transform .15s, box-shadow .2s", position: "relative",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 8
+                }}
+                onMouseDown={e => e.currentTarget.style.transform = "scale(.97)"}
+                onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
+                onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+                >
+                  {qty > 0 && (
+                    <span style={{ position: "absolute", top: 6, right: 6, background: th, color: "white", width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 900, boxShadow: `0 4px 10px ${th}66`, zIndex: 4 }}>{qty}</span>
+                  )}
+                  {m.isSet ? (
+                    <SetImage drinkKeys={m.drinkKeys} dessertKeys={m.dessertKeys} style={{
+                      width: "100%", aspectRatio: "1/1", borderRadius: 12
+                    }} />
+                  ) : (
+                    <img src={m.image} alt="" loading="lazy" style={{
+                      width: "100%", aspectRatio: "1/1", objectFit: "contain", borderRadius: 12, background: "#f1f5f9"
+                    }} />
+                  )}
+                  <div style={{ fontSize: "clamp(11px, 1.5vw, 15px)", fontWeight: 800, color: "#0f172a", lineHeight: 1.25, minHeight: "2.4em", display: "flex", alignItems: "center" }}>{m.name}</div>
+                  <div style={{ fontSize: "clamp(12px, 1.6vw, 16px)", fontWeight: 800, color: th }}>{fmtMoney(m.price)}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 하단 카트/결제 영역 (고정) */}
+        <div style={{
+          flexShrink: 0, background: "white",
+          boxShadow: "0 -10px 30px rgba(15,23,42,.10)", borderTop: `2px solid ${th}30`,
+          height: "clamp(180px, 26vh, 230px)", display: "flex"
+        }}>
+          {/* 좌측: 담은 메뉴 (세로 스크롤) */}
+          <div style={{ flex: "1 1 60%", display: "flex", flexDirection: "column", minWidth: 0, padding: "10px 12px 10px 14px" }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#475569", marginBottom: 8, flexShrink: 0 }}>
+              담은 메뉴 {totalQty > 0 && <span style={{ color: th }}>({totalQty}개)</span>}
+            </div>
+            {cartItems.length === 0 ? (
+              <div style={{ color: "#94a3b8", fontSize: 13, padding: "10px 0", flex: 1, display: "flex", alignItems: "center" }}>아직 담긴 메뉴가 없어요</div>
+            ) : (
+              <div ref={cartScrollRef} className="scrollY" style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, paddingRight: 4 }}>
+                {cartItems.map(it => (
+                  <div key={it.cartKey} style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    background: `${th}10`, border: `1.5px solid ${th}35`, borderRadius: 10, padding: "6px 8px"
+                  }}>
+                    {it.isSet ? (
+                      <SetImage drinkKeys={it.drinkKeys} dessertKeys={it.dessertKeys} showBadge={false} style={{ width: 34, height: 34, borderRadius: 6, flexShrink: 0 }} />
+                    ) : (
+                      <img src={it.image} alt="" style={{ width: 34, height: 34, objectFit: "contain", borderRadius: 6, flexShrink: 0, background: "white" }} />
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {it.name}
+                        {!it.isSet && it.option && <span style={{ marginLeft: 5, fontSize: 11, color: th, fontWeight: 800 }}>· {OPTION_LABEL[it.option]}</span>}
+                      </div>
+                      {it.isSet && (() => {
+                        const opts = formatItemOption(it);
+                        if (!opts) return null;
+                        return (
+                          <div style={{ fontSize: 10.5, color: th, fontWeight: 700, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {opts.join(" / ")}
+                          </div>
+                        );
+                      })()}
+                      <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>{fmtMoney(it.price * it.qty)}</div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                      <button onClick={() => decFromCart(it.cartKey)} style={{ width: 26, height: 26, borderRadius: 6, border: `1.5px solid ${th}55`, background: "white", cursor: "pointer", fontSize: 14, fontWeight: 800, color: th }}>−</button>
+                      <span style={{ minWidth: 18, textAlign: "center", fontWeight: 800, fontSize: 13 }}>{it.qty}</span>
+                      <button onClick={() => incFromCart(it.cartKey)} style={{ width: 26, height: 26, borderRadius: 6, border: "none", background: th, color: "white", cursor: "pointer", fontSize: 14, fontWeight: 800 }}>+</button>
+                      <button onClick={() => removeFromCart(it.cartKey)} style={{ width: 22, height: 22, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", fontSize: 11, color: "#94a3b8" }}>✕</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* 우측: 총 금액 + 결제 */}
+          <div style={{ flex: "0 0 38%", maxWidth: 360, padding: "10px 14px", borderLeft: "1.5px dashed #e2e8f0", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 8 }}>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>총 금액</div>
+              <div style={{ fontSize: "clamp(20px, 3.4vw, 30px)", fontWeight: 900, color: th, lineHeight: 1.1 }}>{fmtMoney(total)}</div>
+            </div>
+            <button
+              onClick={() => totalQty > 0 && setScreen("confirm")}
+              disabled={totalQty === 0}
+              style={{
+                background: totalQty === 0 ? "#cbd5e1" : th, color: "white", border: "none",
+                borderRadius: 12, padding: "14px 12px", fontSize: 17, fontWeight: 900,
+                cursor: totalQty === 0 ? "default" : "pointer",
+                boxShadow: totalQty === 0 ? "none" : `0 8px 20px ${th}55`
+              }}
+            >결제하기</button>
+          </div>
+        </div>
+
+        {/* ─── 옵션 팝업 ─── */}
+        {optionPopup && (() => {
+          // ── 세트 옵션 팝업: 한 화면에서 음료(들) 온도 + 디저트(들) 데움 선택 ──
+          if (optionPopup.isSet) {
+            const setData = (settings.menuItems.sets || []).find(s => s.key === optionPopup.menuKey);
+            if (!setData) return null;
+            const tempBtns = [{ v: "hot",  l: "🔥 뜨겁게" }, { v: "cold", l: "🧊 차갑게" }];
+            const heatBtns = [{ v: "warm", l: "🔥 데워 주세요" }, { v: "asis", l: "🍰 그냥 주세요" }];
+            const setDrinkOpt = (i, v) => setOptionPopup(p => { const a = [...p.drinkOpts];   a[i] = v; return { ...p, drinkOpts: a }; });
+            const setDessertOpt = (i, v) => setOptionPopup(p => { const a = [...p.dessertOpts]; a[i] = v; return { ...p, dessertOpts: a }; });
+
+            return (
+              <div onClick={() => setOptionPopup(null)} style={{
+                position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 100,
+                display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+                animation: "fade .15s ease both"
+              }}>
+                <div onClick={e => e.stopPropagation()} style={{
+                  background: "white", borderRadius: 24, width: "100%", maxWidth: 480,
+                  maxHeight: "92vh", display: "flex", flexDirection: "column",
+                  boxShadow: "0 24px 60px rgba(0,0,0,0.32)",
+                  animation: "pop .25s cubic-bezier(0.34, 1.56, 0.64, 1) both",
+                  overflow: "hidden"
+                }}>
+                  <div style={{ background: `linear-gradient(135deg, ${th}22, ${th}08)`, padding: "20px 22px 14px", display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+                    <SetImage drinkKeys={setData.drinkKeys} dessertKeys={setData.dessertKeys} style={{ width: 76, height: 76, borderRadius: 12, flexShrink: 0, boxShadow: "0 4px 12px rgba(15,23,42,.10)" }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: th, marginBottom: 2 }}>🎁 세트</div>
+                      <div style={{ fontSize: 17, fontWeight: 900, color: "#0f172a", marginBottom: 4, lineHeight: 1.3 }}>{setData.name}</div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: th }}>{fmtMoney(setData.price)}</div>
+                    </div>
+                  </div>
+                  <div className="scrollY" style={{ padding: "16px 22px 4px", overflowY: "auto", flex: 1, minHeight: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#475569", marginBottom: 12 }}>원하시는 방법을 선택해 주세요</div>
+
+                    {(optionPopup.drinkKeys || []).map((k, i) => {
+                      if (!optionPopup.drinkOpts[i]) return null; // 옵션 불필요한 음료는 표시 안 함
+                      const drink = catalogMap[k];
+                      return (
+                        <div key={`d-${i}`} style={{ marginBottom: 16, padding: 12, background: "#f8fafc", borderRadius: 14, border: "1.5px solid #e2e8f0" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                            <img src={drink?.image} alt="" style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 8, background: "white" }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", marginBottom: 2 }}>🥤 음료</div>
+                              <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>{drink?.name}</div>
+                            </div>
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                            {tempBtns.map(o => {
+                              const sel = optionPopup.drinkOpts[i] === o.v;
+                              return (
+                                <button key={o.v} onClick={() => setDrinkOpt(i, o.v)} style={{
+                                  padding: "12px 8px", borderRadius: 10,
+                                  border: `2px solid ${sel ? th : "#e2e8f0"}`,
+                                  background: sel ? `${th}15` : "white",
+                                  cursor: "pointer", fontSize: 15, fontWeight: 900,
+                                  color: sel ? th : "#475569",
+                                  boxShadow: sel ? `0 4px 12px ${th}26` : "none",
+                                  transition: "all .12s"
+                                }}>{o.l}</button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {(optionPopup.dessertKeys || []).map((k, i) => {
+                      if (!optionPopup.dessertOpts[i]) return null; // 옵션 불필요한 디저트는 표시 안 함
+                      const dessert = catalogMap[k];
+                      return (
+                        <div key={`s-${i}`} style={{ marginBottom: 16, padding: 12, background: "#f8fafc", borderRadius: 14, border: "1.5px solid #e2e8f0" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                            <img src={dessert?.image} alt="" style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 8, background: "white" }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", marginBottom: 2 }}>🍰 디저트</div>
+                              <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>{dessert?.name}</div>
+                            </div>
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                            {heatBtns.map(o => {
+                              const sel = optionPopup.dessertOpts[i] === o.v;
+                              return (
+                                <button key={o.v} onClick={() => setDessertOpt(i, o.v)} style={{
+                                  padding: "12px 8px", borderRadius: 10,
+                                  border: `2px solid ${sel ? th : "#e2e8f0"}`,
+                                  background: sel ? `${th}15` : "white",
+                                  cursor: "pointer", fontSize: 15, fontWeight: 900,
+                                  color: sel ? th : "#475569",
+                                  boxShadow: sel ? `0 4px 12px ${th}26` : "none",
+                                  transition: "all .12s"
+                                }}>{o.l}</button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ padding: "12px 22px 22px", display: "flex", gap: 8, flexShrink: 0, borderTop: "1px solid #f1f5f9" }}>
+                    <button onClick={() => setOptionPopup(null)} style={{
+                      flex: "0 0 90px", padding: "14px", borderRadius: 12, border: "1.5px solid #cbd5e1",
+                      background: "white", color: "#475569", fontSize: 15, fontWeight: 700, cursor: "pointer"
+                    }}>취소</button>
+                    <button onClick={confirmOption} style={{
+                      flex: 1, padding: "14px", borderRadius: 12, border: "none",
+                      background: th, color: "white", fontSize: 16, fontWeight: 900, cursor: "pointer",
+                      boxShadow: `0 8px 20px ${th}55`
+                    }}>담기</button>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // ── 단일 메뉴 옵션 팝업 (기존) ──
+          const cat = catalogMap[optionPopup.menuKey];
+          const m = (settings.menuItems[categoryOf(optionPopup.menuKey)] || []).find(x => x.key === optionPopup.menuKey);
+          const price = m ? m.price : 0;
+          const options = optionPopup.type === "temp"
+            ? [{ v: "hot",  l: "🔥 뜨겁게", desc: "Hot" },  { v: "cold", l: "🧊 차갑게",   desc: "Iced" }]
+            : [{ v: "warm", l: "🔥 데워 주세요" }, { v: "asis", l: "🍰 그냥 주세요" }];
+          return (
+            <div onClick={() => setOptionPopup(null)} style={{
+              position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 100,
+              display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+              animation: "fade .15s ease both"
+            }}>
+              <div onClick={e => e.stopPropagation()} style={{
+                background: "white", borderRadius: 24, width: "100%", maxWidth: 420,
+                boxShadow: "0 24px 60px rgba(0,0,0,0.32)",
+                animation: "pop .25s cubic-bezier(0.34, 1.56, 0.64, 1) both",
+                overflow: "hidden"
+              }}>
+                <div style={{ background: `linear-gradient(135deg, ${th}22, ${th}08)`, padding: "20px 22px 14px", display: "flex", alignItems: "center", gap: 14 }}>
+                  <img src={cat.image} alt="" style={{ width: 72, height: 72, objectFit: "contain", borderRadius: 12, background: "white", flexShrink: 0, boxShadow: "0 4px 12px rgba(15,23,42,.10)" }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a", marginBottom: 4 }}>{cat.name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: th }}>{fmtMoney(price)}</div>
+                  </div>
+                </div>
+                <div style={{ padding: "20px 22px 22px" }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#475569", marginBottom: 12 }}>
+                    {optionPopup.type === "temp" ? "뜨겁게 드릴까요, 차갑게 드릴까요?" : "원하시는 방법을 선택해 주세요"}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 18 }}>
+                    {options.map(o => {
+                      const selected = optionPopup.selected === o.v;
+                      return (
+                        <button key={o.v} onClick={() => setOptionPopup(p => ({ ...p, selected: o.v }))} style={{
+                          padding: "18px 12px", borderRadius: 14,
+                          border: `2.5px solid ${selected ? th : "#e2e8f0"}`,
+                          background: selected ? `${th}15` : "white",
+                          cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+                          transition: "all .15s",
+                          boxShadow: selected ? `0 6px 18px ${th}33` : "none"
+                        }}>
+                          <span style={{ fontSize: 22, fontWeight: 900 }}>{o.l}</span>
+                          {o.desc && <span style={{ fontSize: 11, color: selected ? th : "#94a3b8", fontWeight: 700, letterSpacing: 1 }}>{o.desc}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => setOptionPopup(null)} style={{
+                      flex: "0 0 90px", padding: "14px", borderRadius: 12, border: "1.5px solid #cbd5e1",
+                      background: "white", color: "#475569", fontSize: 15, fontWeight: 700, cursor: "pointer"
+                    }}>취소</button>
+                    <button onClick={confirmOption} style={{
+                      flex: 1, padding: "14px", borderRadius: 12, border: "none",
+                      background: th, color: "white", fontSize: 16, fontWeight: 900, cursor: "pointer",
+                      boxShadow: `0 8px 20px ${th}55`
+                    }}>담기</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+    );
+  }
+
+  // ───────────────── ORDER CONFIRM ─────────────────
+  if (screen === "confirm") {
+    return (
+      <div style={{ ...FULL, background: BG }}>
+        <div style={{ background: th, color: "white", padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <button onClick={() => setScreen("order")} style={{ background: "rgba(255,255,255,.18)", border: "none", color: "white", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 700 }}>← 돌아가기</button>
+          <h2 style={{ flex: 1, fontSize: 20, fontWeight: 800, margin: 0, textAlign: "center", marginRight: 90 }}>주문 확인</h2>
+        </div>
+
+        <div style={{ flexShrink: 0, padding: "20px 18px 10px", textAlign: "center" }}>
+          <div style={{ fontSize: "clamp(20px, 3vw, 26px)", fontWeight: 900, color: "#0f172a" }}>주문한 메뉴를 확인해 주세요</div>
+          <div style={{ fontSize: 13, color: "#475569", marginTop: 4, fontWeight: 600 }}>
+            {orderType === "eatin" ? "☕ 먹고 가기" : "🥡 포장하기"} · {totalQty}개
+          </div>
+        </div>
+
+        <div className="scrollY" style={{ flex: 1, overflowY: "auto", padding: "10px 16px 16px", minHeight: 0 }}>
+          <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 10 }}>
+            {cartItems.map(it => (
+              <div key={it.cartKey} style={{
+                background: "white", borderRadius: 16, padding: 12,
+                display: "flex", alignItems: "center", gap: 14,
+                boxShadow: "0 4px 14px rgba(15,23,42,.08)",
+                border: `2px solid ${th}25`,
+                animation: "slideUp .25s ease both"
+              }}>
+                {it.isSet ? (
+                  <SetImage drinkKeys={it.drinkKeys} dessertKeys={it.dessertKeys} style={{ width: "clamp(64px, 11vw, 90px)", height: "clamp(64px, 11vw, 90px)", borderRadius: 12, flexShrink: 0 }} />
+                ) : (
+                  <img src={it.image} alt="" style={{ width: "clamp(64px, 11vw, 90px)", height: "clamp(64px, 11vw, 90px)", objectFit: "contain", borderRadius: 12, background: "#f1f5f9", flexShrink: 0 }} />
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, color: th, fontWeight: 800, marginBottom: 2 }}>
+                    {it.category === "drinks" ? "음료" : it.category === "desserts" ? "디저트" : "세트"}
+                    {!it.isSet && it.option && <span style={{ marginLeft: 6, padding: "2px 8px", background: `${th}15`, borderRadius: 999 }}>{OPTION_LABEL[it.option]}</span>}
+                  </div>
+                  <div style={{ fontSize: "clamp(15px, 2vw, 18px)", fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>{it.name}</div>
+                  {it.isSet && (() => {
+                    const opts = formatItemOption(it);
+                    if (!opts) return null;
+                    return (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
+                        {opts.map((o, i) => (
+                          <span key={i} style={{ fontSize: 11, color: th, fontWeight: 700, padding: "2px 8px", background: `${th}15`, borderRadius: 999 }}>{o}</span>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                  <div style={{ fontSize: 13, color: "#64748b", fontWeight: 600 }}>{fmtMoney(it.price)} × {it.qty}개</div>
+                </div>
+                <div style={{ flexShrink: 0, textAlign: "right" }}>
+                  <div style={{ fontSize: "clamp(16px, 2.4vw, 20px)", fontWeight: 900, color: th }}>{fmtMoney(it.price * it.qty)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{
+          flexShrink: 0, background: "white",
+          boxShadow: "0 -10px 30px rgba(15,23,42,.10)", borderTop: `2px solid ${th}30`,
+          padding: "14px 18px"
+        }}>
+          <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            <div style={{ flex: "1 1 auto", minWidth: 140 }}>
+              <div style={{ fontSize: 13, color: "#64748b", fontWeight: 700 }}>총 결제 금액</div>
+              <div style={{ fontSize: "clamp(24px, 4vw, 34px)", fontWeight: 900, color: th, lineHeight: 1.1 }}>{fmtMoney(total)}</div>
+            </div>
+            <button onClick={() => setScreen("payment-method")} style={{
+              flex: "1 1 200px", background: th, color: "white", border: "none",
+              borderRadius: 14, padding: "16px 24px", fontSize: 18, fontWeight: 900,
+              cursor: "pointer", boxShadow: `0 8px 22px ${th}55`
+            }}>결제하기</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ───────────────── PAYMENT METHOD ─────────────────
+  if (screen === "payment-method") return (
+    <div style={{ ...FULL, background: BG }}>
+      <div style={{ background: th, color: "white", padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+        <button onClick={() => setScreen("confirm")} style={{ background: "rgba(255,255,255,.18)", border: "none", color: "white", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 700 }}>← 이전</button>
+        <h2 style={{ flex: 1, fontSize: 20, fontWeight: 800, margin: 0 }}>결제 방법 선택</h2>
+      </div>
+      <div className="scrollY" style={{ flex: 1, overflowY: "auto", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, minHeight: 0 }}>
+        <div style={{ width: "100%", maxWidth: 820 }}>
+          <div style={{
+            background: `linear-gradient(135deg, ${th}18, ${th}08)`,
+            borderRadius: 20, padding: "26px 22px", marginBottom: 22, textAlign: "center",
+            border: `1.5px solid ${th}30`
+          }}>
+            <div style={{ fontSize: 14, color: "#475569", fontWeight: 700 }}>결제 금액</div>
+            <div style={{ fontSize: "clamp(36px, 5vw, 50px)", fontWeight: 900, color: th, marginTop: 4 }}>{fmtMoney(total)}</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+            {[
+              { k: "cash",  l: "현금",       e: "💵" },
+              { k: "card",  l: "카드",       e: "💳" },
+              { k: "smart", l: "스마트 결제", e: "📱" },
+            ].map(b => (
+              <button key={b.k} onClick={() => doPay(b.k)} style={{
+                background: "white", border: `3px solid ${th}`, borderRadius: 18,
+                padding: "26px 12px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+                boxShadow: `0 8px 22px ${th}26`, transition: "transform .15s"
+              }}
+              onMouseDown={e => e.currentTarget.style.transform = "scale(.97)"}
+              onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
+              onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+              >
+                <span style={{ fontSize: "clamp(38px, 5vw, 56px)" }}>{b.e}</span>
+                <span style={{ fontSize: "clamp(14px, 2vw, 20px)", fontWeight: 900, color: "#0f172a" }}>{b.l}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ───────────────── PROCESSING ─────────────────
+  if (screen === "processing") {
+    const msg = paymentMethod === "cash"  ? "현금을 투입구에 넣어 주세요"
+              : paymentMethod === "card"  ? "카드를 카드 리더기에 넣어 주세요"
+              :                              "카드 리더기에 스마트폰 뒷면을 대 주세요";
+    return (
+      <div style={{ ...FULL, background: BG, alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+          {paymentMethod === "smart" ? (
+            <div style={{ animation: "pop .5s cubic-bezier(0.34, 1.56, 0.64, 1) both", marginBottom: 18 }}>
+              <SmartPaySVG color={th} />
+            </div>
+          ) : (
+            <div style={{ width: 110, height: 110, borderRadius: "50%", background: th, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 14px 36px ${th}55`, marginBottom: 24, animation: "pop .5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+              <span style={{ fontSize: 52 }}>{paymentMethod === "cash" ? "💵" : "💳"}</span>
+            </div>
+          )}
+          <div style={{ fontSize: "clamp(18px, 2.8vw, 24px)", fontWeight: 900, color: th, marginBottom: 8, padding: "0 18px" }}>{msg}</div>
+          <div style={{ color: "#475569", fontSize: 14, marginBottom: 24 }}>잠시만 기다려 주세요</div>
+          <div style={{ display: "flex", gap: 10 }}>
+            {[0,1,2].map(i => (
+              <div key={i} style={{ width: 12, height: 12, borderRadius: "50%", background: th, animation: `dotPulse 1.4s ease-in-out ${i * 0.28}s infinite` }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ───────────────── DONE ─────────────────
+  if (screen === "done") return (
+    <div style={{ ...FULL, background: BG, alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>
+        <div style={{ background: "white", borderRadius: 26, padding: "40px 32px", maxWidth: 480, width: "100%", textAlign: "center", boxShadow: "0 14px 36px rgba(15,23,42,.12)", animation: "pop .5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}>
+          <div style={{ width: 80, height: 80, borderRadius: "50%", background: th, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 40, margin: "0 auto 18px", boxShadow: `0 10px 26px ${th}55` }}>✓</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>결제가 완료되었습니다</div>
+          <div style={{ fontSize: 13, color: "#64748b", marginBottom: 18 }}>주문 번호</div>
+          <div style={{ fontSize: "clamp(70px, 14vw, 110px)", fontWeight: 900, color: th, lineHeight: 1, letterSpacing: "-3px", marginBottom: 18 }}>{orderNo}번</div>
+          <div style={{
+            background: `${th}15`, color: th, borderRadius: 14, padding: "14px 18px",
+            fontSize: "clamp(15px, 2.2vw, 17px)", fontWeight: 800, border: `1.5px solid ${th}30`
+          }}>
+            {settings.useVibrationBell
+              ? "🔔 진동벨을 하나 가져가세요"
+              : "📣 주문 번호로 불러 드리겠습니다"}
+          </div>
+          <div style={{ marginTop: 18, fontSize: 12, color: "#94a3b8" }}>잠시 후 메인 화면으로 돌아갑니다</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return null;
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<CafeKiosk />);
+  </script>
+</body>
+</html>

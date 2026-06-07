@@ -1,0 +1,97 @@
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Set Menu">
+  <defs>
+    <linearGradient id="bgSet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FEF3C7"/>
+      <stop offset="100%" stop-color="#FDE68A"/>
+    </linearGradient>
+    <linearGradient id="cupSet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F1F5F9"/>
+    </linearGradient>
+    <linearGradient id="cakeSet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FBBF24"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="400" fill="url(#bgSet)" rx="28"/>
+
+  <!-- Decorative dots -->
+  <circle cx="60" cy="50" r="6" fill="#FCD34D" opacity="0.6"/>
+  <circle cx="340" cy="70" r="8" fill="#FCD34D" opacity="0.5"/>
+  <circle cx="60" cy="350" r="5" fill="#F59E0B" opacity="0.5"/>
+  <circle cx="350" cy="340" r="7" fill="#F59E0B" opacity="0.4"/>
+
+  <!-- SET label -->
+  <g transform="translate(140 30)">
+    <rect width="120" height="44" rx="22" fill="#DC2626"/>
+    <text x="60" y="30" text-anchor="middle" font-family="'Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-weight="900" font-size="22" fill="white" letter-spacing="4">SET</text>
+  </g>
+
+  <!-- Plate shadow -->
+  <ellipse cx="200" cy="345" rx="160" ry="14" fill="#92400E" opacity="0.18"/>
+
+  <!-- Coffee cup (left) -->
+  <g transform="translate(40 175)">
+    <!-- Saucer -->
+    <ellipse cx="75" cy="135" rx="78" ry="10" fill="#FFFFFF"/>
+    <ellipse cx="75" cy="130" rx="74" ry="9" fill="#FEF3C7" stroke="#92400E" stroke-width="3"/>
+
+    <!-- Cup body -->
+    <path d="M 20 35 L 20 105 Q 20 128 45 130 L 105 130 Q 130 128 130 105 L 130 35 Z"
+          fill="url(#cupSet)" stroke="#78350F" stroke-width="4"/>
+
+    <!-- Coffee surface -->
+    <ellipse cx="75" cy="35" rx="55" ry="11" fill="#451A03"/>
+    <ellipse cx="75" cy="35" rx="55" ry="11" fill="#78350F" opacity="0.3"/>
+
+    <!-- Handle -->
+    <path d="M 130 55 Q 162 60 162 88 Q 162 110 130 110"
+          stroke="#78350F" stroke-width="5" fill="none" stroke-linecap="round"/>
+
+    <!-- Steam -->
+    <g opacity="0.65" stroke="#94A3B8" stroke-width="3" fill="none" stroke-linecap="round">
+      <path d="M 48 10 Q 42 -4 50 -16 Q 56 -24 50 -36"/>
+      <path d="M 75 0 Q 69 -14 77 -26 Q 83 -34 77 -46"/>
+      <path d="M 102 10 Q 96 -4 104 -16 Q 110 -24 104 -36"/>
+    </g>
+  </g>
+
+  <!-- Cake (right) -->
+  <g transform="translate(220 195)">
+    <!-- Plate -->
+    <ellipse cx="70" cy="115" rx="78" ry="10" fill="#FFFFFF"/>
+    <ellipse cx="70" cy="110" rx="74" ry="9" fill="#FEF3C7" stroke="#92400E" stroke-width="3"/>
+
+    <!-- Cake base -->
+    <path d="M 15 55 L 125 55 L 115 110 L 25 110 Z"
+          fill="url(#cakeSet)" stroke="#92400E" stroke-width="3"/>
+
+    <!-- Cake cream top -->
+    <path d="M 15 55 Q 15 28 70 28 Q 125 28 125 55 Z"
+          fill="#FFFFFF" stroke="#92400E" stroke-width="3"/>
+
+    <!-- Drips -->
+    <path d="M 30 55 Q 30 70 40 70 Q 50 70 50 55" fill="#FBCFE8" stroke="#92400E" stroke-width="2"/>
+    <path d="M 70 55 Q 70 75 82 75 Q 94 75 94 55" fill="#FBCFE8" stroke="#92400E" stroke-width="2"/>
+    <path d="M 105 55 Q 105 68 113 68 Q 121 68 121 55" fill="#FBCFE8" stroke="#92400E" stroke-width="2"/>
+
+    <!-- Cherry -->
+    <circle cx="70" cy="22" r="11" fill="#DC2626"/>
+    <ellipse cx="66" cy="18" rx="3" ry="2" fill="#FECACA" opacity="0.8"/>
+    <path d="M 70 12 Q 78 4 86 2" stroke="#16A34A" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+    <!-- Sprinkles -->
+    <circle cx="38" cy="42" r="2.5" fill="#3B82F6"/>
+    <circle cx="55" cy="50" r="2.5" fill="#FACC15"/>
+    <circle cx="90" cy="48" r="2.5" fill="#16A34A"/>
+    <circle cx="105" cy="44" r="2.5" fill="#DC2626"/>
+  </g>
+
+  <!-- Plus icon between -->
+  <g transform="translate(195 232)">
+    <circle r="14" fill="#FFFFFF" stroke="#F59E0B" stroke-width="3"/>
+    <text x="0" y="6" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="20" fill="#F59E0B">+</text>
+  </g>
+</svg>
